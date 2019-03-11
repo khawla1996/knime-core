@@ -45,6 +45,13 @@
  */
 package org.knime.core.data.container;
 
+import static org.knime.core.data.predicate.Column.boolCol;
+import static org.knime.core.data.predicate.Column.intCol;
+import static org.knime.core.data.predicate.Column.longCol;
+import static org.knime.core.data.predicate.FilterPredicate.eq;
+import static org.knime.core.data.predicate.FilterPredicate.geq;
+import static org.knime.core.data.predicate.FilterPredicate.leq;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -71,6 +78,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 import org.knime.core.data.DataCell;
+import org.knime.core.data.DataColumnSpecCreator;
 import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTable;
 import org.knime.core.data.DataTableSpec;
@@ -78,10 +86,13 @@ import org.knime.core.data.DataType;
 import org.knime.core.data.MissingValue;
 import org.knime.core.data.RowIterator;
 import org.knime.core.data.RowKey;
+import org.knime.core.data.def.BooleanCell;
 import org.knime.core.data.def.DefaultRow;
 import org.knime.core.data.def.DoubleCell;
 import org.knime.core.data.def.IntCell;
+import org.knime.core.data.def.LongCell;
 import org.knime.core.data.def.StringCell;
+import org.knime.core.data.predicate.FilterPredicate;
 import org.knime.core.data.util.ObjectToDataCellConverter;
 import org.knime.core.data.util.memory.MemoryAlertSystem;
 import org.knime.core.data.util.memory.MemoryAlertSystemTest;
@@ -842,6 +853,62 @@ public class DataContainerTest extends TestCase {
         }
         Assert.assertTrue("Medium-sized table not read back into memory from disk.", buffer.isHeldInMemory());
         Assert.assertTrue("Previously flushed medium-sized table not flushed any more.", buffer.isFlushedToDisk());
+    }
+
+    @Test
+    public void testFromListIteratorWithPredicate() {
+        // keep only rows with an index that is even and between 10 and 20 (i.e. 10, 12, 14, 16, 18, 20)
+        FilterPredicate pred = geq(intCol(0), 10).and(leq(longCol(2), 20l)).and(eq(boolCol(4), false));
+
+        try (final CloseableRowIterator rowIt =
+            createBuffer(100, DataContainerSettings.getDefault()).iteratorBuilder().filterRowsFrom(13).filterRowsTo(17).filter(pred).build()) {
+            assertTrue(rowIt.hasNext());
+            assertEquals("14", rowIt.next().getKey().getString());
+            assertTrue(rowIt.hasNext());
+            assertEquals("16", rowIt.next().getKey().getString());
+            assertFalse(rowIt.hasNext());
+        }
+    }
+
+    @Test
+    public void testTableStoreCloseableRowIteratorWithPredicate() {
+        // keep only rows with an index that is even and between 10 and 20 (i.e. 10, 12, 14, 16, 18, 20)
+        FilterPredicate pred = geq(intCol(0), 10).and(leq(longCol(2), 20l)).and(eq(boolCol(4), false));
+
+        try (final CloseableRowIterator rowIt =
+            createBuffer(100, DataContainerSettings.getDefault().withMaxCellsInMemory(0)).iteratorBuilder().filterRowsFrom(13).filterRowsTo(17).filter(pred).build()) {
+            assertTrue(rowIt.hasNext());
+            assertEquals("14", rowIt.next().getKey().getString());
+            assertTrue(rowIt.hasNext());
+            assertEquals("16", rowIt.next().getKey().getString());
+            assertFalse(rowIt.hasNext());
+        }
+    }
+
+    private static Buffer createBuffer(final int rowCount, final DataContainerSettings settings) {
+        final DataTableSpec spec = new DataTableSpec(new DataColumnSpecCreator("int", IntCell.TYPE).createSpec(),
+            new DataColumnSpecCreator("string", StringCell.TYPE).createSpec(),
+            new DataColumnSpecCreator("long", LongCell.TYPE).createSpec(),
+            new DataColumnSpecCreator("double", DoubleCell.TYPE).createSpec(),
+            new DataColumnSpecCreator("boolean", BooleanCell.TYPE).createSpec());
+
+        final DataRow[] rows = IntStream.range(0, rowCount)
+            .mapToObj(i -> new DefaultRow(new RowKey(Integer.toString(i)), new IntCell(i),
+                new StringCell(Integer.toString(i)), new LongCell(i), new DoubleCell(i),
+                i % 2 == 1 ? BooleanCell.TRUE : BooleanCell.FALSE))
+            .toArray(DataRow[]::new);
+
+        final DataContainer cont = new DataContainer(spec, settings);
+        // write the data
+        for (final DataRow r : rows) {
+            cont.addRowToTable(r);
+        }
+
+        // get the buffer and close the data container
+        final Buffer buffer = cont.getBuffer();
+        cont.close();
+
+        return buffer;
     }
 
     /**
