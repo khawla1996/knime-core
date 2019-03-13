@@ -48,8 +48,13 @@
 package org.knime.core.data.container;
 
 import java.io.Closeable;
+import java.util.function.Supplier;
 
+import org.knime.core.data.DataRow;
+import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.RowIterator;
+import org.knime.core.data.RowIteratorBuilder;
+import org.knime.core.node.util.CheckUtils;
 
 /**
  * A {@link RowIterator row iterator} that can be closed in order to save
@@ -74,4 +79,47 @@ public abstract class CloseableRowIterator extends RowIterator implements Closea
      * invocations are ignored). */
     @Override
     public abstract void close();
+
+    /**
+     * @since 3.8
+     */
+    public static class DefaultBuilder extends RowIterator.Builder<DefaultBuilder> implements RowIteratorBuilder<CloseableRowIterator> {
+
+        private final Supplier<CloseableRowIterator> m_iteratorSupplier;
+
+        public DefaultBuilder(final Supplier<CloseableRowIterator> iteratorSupplier, final DataTableSpec spec) {
+            super(spec);
+            m_iteratorSupplier = CheckUtils.checkArgumentNotNull(iteratorSupplier, "Argument must not be null");
+        }
+
+        @Override
+        public CloseableRowIterator build() {
+            // build a new row iterator that forwards to a FilterDelegateRowIterator
+            return new CloseableRowIterator() {
+                CloseableRowIterator m_delegate = m_iteratorSupplier.get();
+                FilterDelegateRowIterator m_filter = new FilterDelegateRowIterator(m_delegate, getFromIndex(), getToIndex(), getPredicate());
+
+                @Override
+                public DataRow next() {
+                    return m_filter.next();
+                }
+
+                @Override
+                public boolean hasNext() {
+                    return m_filter.hasNext();
+                }
+
+                @Override
+                public void close() {
+                    m_delegate.close();
+                }
+            };
+        }
+
+        @Override
+        protected DefaultBuilder self() {
+            return this;
+        }
+
+    }
 }

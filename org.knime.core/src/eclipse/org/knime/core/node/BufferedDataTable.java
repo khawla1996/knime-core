@@ -72,7 +72,6 @@ import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DataType;
 import org.knime.core.data.IDataRepository;
 import org.knime.core.data.RowIteratorBuilder;
-import org.knime.core.data.RowIteratorBuilder.DefaultRowIteratorBuilder;
 import org.knime.core.data.RowKey;
 import org.knime.core.data.container.BlobSupportDataRow;
 import org.knime.core.data.container.CloseableRowIterator;
@@ -940,7 +939,7 @@ public final class BufferedDataTable implements DataTable, PortObject {
          */
         @Override
         default RowIteratorBuilder<? extends CloseableRowIterator> iteratorBuilder() {
-            return new DefaultRowIteratorBuilder<CloseableRowIterator>(() -> iterator(), getDataTableSpec());
+            return new CloseableRowIterator.DefaultBuilder(() -> iterator(), getDataTableSpec());
         }
 
         /** Reference to the underlying tables, if any. A reference

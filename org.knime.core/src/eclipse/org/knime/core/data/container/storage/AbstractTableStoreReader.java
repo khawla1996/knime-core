@@ -59,16 +59,18 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import org.apache.commons.io.IOUtils;
 import org.eclipse.core.runtime.Platform;
 import org.knime.core.data.DataCell;
+import org.knime.core.data.DataRow;
 import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.DataType;
 import org.knime.core.data.DataTypeRegistry;
 import org.knime.core.data.IDataRepository;
+import org.knime.core.data.RowIterator;
 import org.knime.core.data.RowIteratorBuilder;
-import org.knime.core.data.RowIteratorBuilder.DefaultRowIteratorBuilder;
 import org.knime.core.data.container.BlobDataCell.BlobAddress;
 import org.knime.core.data.container.BlobWrapperDataCell;
 import org.knime.core.data.container.Buffer;
@@ -199,14 +201,7 @@ public abstract class AbstractTableStoreReader implements KNIMEStreamConstants {
      * @since 3.7
      */
     public RowIteratorBuilder<? extends TableStoreCloseableRowIterator> iteratorBuilder() {
-        return new DefaultRowIteratorBuilder<TableStoreCloseableRowIterator>(() -> iterator(), m_spec) {
-            @Override
-            public TableStoreCloseableRowIterator build() {
-                TableStoreCloseableRowIterator iterator = super.build();
-                registerNewIteratorInstance(iterator);
-                return iterator;
-            }
-        };
+        return new TableStoreCloseableRowIterator.DefaultBuilder(() -> iterator(), this, m_spec);
     }
 
     /**
@@ -413,6 +408,67 @@ public abstract class AbstractTableStoreReader implements KNIMEStreamConstants {
         }
 
         public abstract boolean performClose() throws IOException;
+
+        /**
+         * @since 3.8
+         */
+        public static class DefaultBuilder extends RowIterator.Builder<DefaultBuilder> implements RowIteratorBuilder<TableStoreCloseableRowIterator> {
+
+            private final Supplier<TableStoreCloseableRowIterator> m_iteratorSupplier;
+
+            private final AbstractTableStoreReader m_reader;
+
+            public DefaultBuilder(final Supplier<TableStoreCloseableRowIterator> iteratorSupplier, final AbstractTableStoreReader reader, final DataTableSpec spec) {
+                super(spec);
+                m_iteratorSupplier = CheckUtils.checkArgumentNotNull(iteratorSupplier, "Argument must not be null");
+                m_reader = reader;
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public TableStoreCloseableRowIterator build() {
+                // build a new row iterator that forwards to a FilterDelegateRowIterator
+                TableStoreCloseableRowIterator iterator = new TableStoreCloseableRowIterator() {
+                    TableStoreCloseableRowIterator m_delegate = m_iteratorSupplier.get();
+                    FilterDelegateRowIterator m_filter = new FilterDelegateRowIterator(m_delegate, getFromIndex(), getToIndex(), getPredicate());
+
+                    @Override
+                    public DataRow next() {
+                        return m_filter.next();
+                    }
+
+                    @Override
+                    public boolean hasNext() {
+                        return m_filter.hasNext();
+                    }
+
+                    @Override
+                    public void setReader(final AbstractTableStoreReader reader) {
+                        super.setReader(reader);
+                        m_delegate.setReader(reader);
+                    }
+
+                    @Override
+                    public boolean performClose() throws IOException {
+                        return m_delegate.performClose();
+                    }
+                };
+
+                m_reader.registerNewIteratorInstance(iterator);
+                return iterator;
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            protected DefaultBuilder self() {
+                return this;
+            }
+
+        }
     }
 
 }

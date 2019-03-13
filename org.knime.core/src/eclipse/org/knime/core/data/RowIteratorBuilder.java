@@ -50,6 +50,7 @@ package org.knime.core.data;
 
 import java.util.function.Supplier;
 
+import org.knime.core.data.predicate.FilterPredicate;
 import org.knime.core.node.util.CheckUtils;
 
 /**
@@ -90,6 +91,27 @@ public interface RowIteratorBuilder<I extends RowIterator> {
     RowIteratorBuilder<I> filterColumns(String... columns);
 
     /**
+     * @since 3.8
+     */
+    default RowIteratorBuilder<I> filterRowsFrom(final long index) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * @since 3.8
+     */
+    default RowIteratorBuilder<I> filterRowsTo(final long index) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * @since 3.8
+     */
+    default RowIteratorBuilder<I> filter(final FilterPredicate predicate) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
      * Build a new row iterator with the behavior specified via methods invoked in this builder.
      *
      * @return a new row iterator
@@ -103,7 +125,9 @@ public interface RowIteratorBuilder<I extends RowIterator> {
      * @param <I> the row iterator to be built
      *
      * @since 3.7
+     * @deprecated Use the {@link RowIterator.DefaultBuilder} instead.
      */
+    @Deprecated
     public static class DefaultRowIteratorBuilder<I extends RowIterator> implements RowIteratorBuilder<I> {
 
         private final Supplier<I> m_iteratorSupplier;

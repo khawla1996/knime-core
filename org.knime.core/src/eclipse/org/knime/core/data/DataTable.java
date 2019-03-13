@@ -44,8 +44,6 @@
  */
 package org.knime.core.data;
 
-import org.knime.core.data.RowIteratorBuilder.DefaultRowIteratorBuilder;
-
 /**
  * Most general data interface in table structure with a fixed number of columns
  * and iterable rows (no random access).
@@ -95,7 +93,7 @@ public interface DataTable extends Iterable<DataRow> {
      * @since 3.7
      */
     default RowIteratorBuilder<? extends RowIterator> iteratorBuilder() {
-        return new DefaultRowIteratorBuilder<RowIterator>(() -> iterator(), getDataTableSpec());
+        return new RowIterator.DefaultBuilder(() -> iterator(), getDataTableSpec());
     }
 
 }

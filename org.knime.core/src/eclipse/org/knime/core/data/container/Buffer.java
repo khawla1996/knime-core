@@ -99,7 +99,6 @@ import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.IDataRepository;
 import org.knime.core.data.RowIterator;
 import org.knime.core.data.RowIteratorBuilder;
-import org.knime.core.data.RowIteratorBuilder.DefaultRowIteratorBuilder;
 import org.knime.core.data.collection.BlobSupportDataCellIterator;
 import org.knime.core.data.collection.CellCollection;
 import org.knime.core.data.collection.CollectionDataValue;
@@ -1505,7 +1504,7 @@ public class Buffer implements KNIMEStreamConstants {
                     new BackIntoMemoryIterator(m_outputReader.iteratorBuilder().build(), size());
                 m_backIntoMemoryIteratorRef = new WeakReference<BackIntoMemoryIterator>(backIntoMemoryIterator);
                 // we never store more than 2^31 rows in memory, therefore it's safe to cast to int
-                return new DefaultRowIteratorBuilder<>(
+                return new CloseableRowIterator.DefaultBuilder(
                     () -> new FromListIterator(backIntoMemoryIterator.getList(), backIntoMemoryIterator),
                     getTableSpec());
             }
@@ -1513,7 +1512,7 @@ public class Buffer implements KNIMEStreamConstants {
                 m_outputReader.iteratorBuilder();
             return iteratorBuilder;
         } else {
-            return new DefaultRowIteratorBuilder<>(() -> new FromListIterator(list,
+            return new CloseableRowIterator.DefaultBuilder(() -> new FromListIterator(list,
                 m_backIntoMemoryIteratorRef != null ? m_backIntoMemoryIteratorRef.get() : null), getTableSpec());
         }
     }
