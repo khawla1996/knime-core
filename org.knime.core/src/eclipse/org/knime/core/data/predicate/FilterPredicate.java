@@ -76,6 +76,8 @@ public interface FilterPredicate {
 
     FilterPredicate validate(DataTableSpec spec);
 
+    <R> R accept(Visitor<R> v);
+
     default FilterPredicate negate() {
         return new Not(this);
     }
@@ -88,15 +90,16 @@ public interface FilterPredicate {
         return new And(this, other);
     }
 
-    static <T, C extends Column<T>> FilterPredicate udf(final C column, final Predicate<T> predicate) {
+    static <T extends Comparable<T>, C extends Column<T>> FilterPredicate udf(final C column,
+        final Predicate<T> predicate) {
         return new CustomPredicate<T>(column, predicate);
     }
 
-    static <T, C extends Column<T>> FilterPredicate eq(final C column, final T value) {
+    static <T extends Comparable<T>, C extends Column<T>> FilterPredicate eq(final C column, final T value) {
         return new EqualTo<T>(column, value);
     }
 
-    static <T, C extends Column<T>> FilterPredicate neq(final C column, final T value) {
+    static <T extends Comparable<T>, C extends Column<T>> FilterPredicate neq(final C column, final T value) {
         return new NotEqualTo<T>(column, value);
     }
 
@@ -114,6 +117,30 @@ public interface FilterPredicate {
 
     static <T extends Comparable<T>, C extends Column<T>> FilterPredicate geq(final C column, final T value) {
         return new GreaterThanOrEqualTo<T>(column, value);
+    }
+
+    public interface Visitor<R> {
+
+        <T extends Comparable<T>> R visit(final CustomPredicate<T> udf);
+
+        <T extends Comparable<T>> R visit(final EqualTo<T> eq);
+
+        <T extends Comparable<T>> R visit(final NotEqualTo<T> neq);
+
+        <T extends Comparable<T>> R visit(final LesserThan<T> lt);
+
+        <T extends Comparable<T>> R visit(final LesserThanOrEqualTo<T> leq);
+
+        <T extends Comparable<T>> R visit(final GreaterThan<T> gt);
+
+        <T extends Comparable<T>> R visit(final GreaterThanOrEqualTo<T> geq);
+
+        public R visit(final And and);
+
+        public R visit(final Or or);
+
+        public R visit(final Not not);
+
     }
 
 }

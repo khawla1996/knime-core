@@ -91,6 +91,11 @@ public abstract class BinaryLogicalPredicate implements FilterPredicate {
         public boolean keep(final DataRow row) {
             return getLeft().keep(row) && getRight().keep(row);
         }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
+        }
     }
 
     public static final class Or extends BinaryLogicalPredicate {
@@ -101,6 +106,11 @@ public abstract class BinaryLogicalPredicate implements FilterPredicate {
         @Override
         public boolean keep(final DataRow row) {
             return getLeft().keep(row) || getRight().keep(row);
+        }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
         }
     }
 

@@ -59,7 +59,7 @@ import org.knime.core.data.DataTableSpec;
  * @since 3.8
  */
 @SuppressWarnings("javadoc")
-public abstract class ColumnPredicate<T> implements FilterPredicate {
+public abstract class ColumnPredicate<T extends Comparable<T>> implements FilterPredicate {
     private final Column<T> m_column;
 
     ColumnPredicate(final Column<T> column) {
@@ -72,11 +72,11 @@ public abstract class ColumnPredicate<T> implements FilterPredicate {
         return this;
     }
 
-    Column<T> getColumn() {
+    public Column<T> getColumn() {
         return m_column;
     }
 
-    public static final class CustomPredicate<T> extends ColumnPredicate<T> {
+    public static final class CustomPredicate<T extends Comparable<T>> extends ColumnPredicate<T> {
         Predicate<T> m_predicate;
 
         CustomPredicate(final Column<T> column, final Predicate<T> predicate) {
@@ -88,9 +88,18 @@ public abstract class ColumnPredicate<T> implements FilterPredicate {
         public boolean keep(final DataRow row) {
             return m_predicate.test(getColumn().getValue(row));
         }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
+        }
+
+        public Predicate<T> getPredicate() {
+            return m_predicate;
+        }
     }
 
-    static abstract class ValuePredicate<T> extends ColumnPredicate<T> {
+    public static abstract class ValuePredicate<T extends Comparable<T>> extends ColumnPredicate<T> {
         private final T m_value;
 
         private ValuePredicate(final Column<T> column, final T value) {
@@ -103,7 +112,7 @@ public abstract class ColumnPredicate<T> implements FilterPredicate {
         }
     }
 
-    public static final class EqualTo<T> extends ValuePredicate<T> {
+    public static final class EqualTo<T extends Comparable<T>> extends ValuePredicate<T> {
         EqualTo(final Column<T> column, final T value) {
             super(column, value);
         }
@@ -112,9 +121,14 @@ public abstract class ColumnPredicate<T> implements FilterPredicate {
         public boolean keep(final DataRow row) {
             return getColumn().getValue(row).equals(getValue());
         }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
+        }
     }
 
-    public static final class NotEqualTo<T> extends ValuePredicate<T> {
+    public static final class NotEqualTo<T extends Comparable<T>> extends ValuePredicate<T> {
         NotEqualTo(final Column<T> column, final T value) {
             super(column, value);
         }
@@ -123,15 +137,14 @@ public abstract class ColumnPredicate<T> implements FilterPredicate {
         public boolean keep(final DataRow row) {
             return !getColumn().getValue(row).equals(getValue());
         }
-    }
 
-    static abstract class OrderPredicate<T extends Comparable<T>> extends ValuePredicate<T> {
-        private OrderPredicate(final Column<T> column, final T value) {
-            super(column, value);
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
         }
     }
 
-    public static final class LesserThan<T extends Comparable<T>> extends OrderPredicate<T> {
+    public static final class LesserThan<T extends Comparable<T>> extends ValuePredicate<T> {
         LesserThan(final Column<T> column, final T value) {
             super(column, value);
         }
@@ -140,9 +153,14 @@ public abstract class ColumnPredicate<T> implements FilterPredicate {
         public boolean keep(final DataRow row) {
             return getColumn().getValue(row).compareTo(getValue()) < 0;
         }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
+        }
     }
 
-    public static final class LesserThanOrEqualTo<T extends Comparable<T>> extends OrderPredicate<T> {
+    public static final class LesserThanOrEqualTo<T extends Comparable<T>> extends ValuePredicate<T> {
         LesserThanOrEqualTo(final Column<T> column, final T value) {
             super(column, value);
         }
@@ -151,9 +169,14 @@ public abstract class ColumnPredicate<T> implements FilterPredicate {
         public boolean keep(final DataRow row) {
             return getColumn().getValue(row).compareTo(getValue()) <= 0;
         }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
+        }
     }
 
-    public static final class GreaterThan<T extends Comparable<T>> extends OrderPredicate<T> {
+    public static final class GreaterThan<T extends Comparable<T>> extends ValuePredicate<T> {
         GreaterThan(final Column<T> column, final T value) {
             super(column, value);
         }
@@ -162,9 +185,14 @@ public abstract class ColumnPredicate<T> implements FilterPredicate {
         public boolean keep(final DataRow row) {
             return getColumn().getValue(row).compareTo(getValue()) > 0;
         }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
+        }
     }
 
-    public static final class GreaterThanOrEqualTo<T extends Comparable<T>> extends OrderPredicate<T> {
+    public static final class GreaterThanOrEqualTo<T extends Comparable<T>> extends ValuePredicate<T> {
         GreaterThanOrEqualTo(final Column<T> column, final T value) {
             super(column, value);
         }
@@ -172,6 +200,11 @@ public abstract class ColumnPredicate<T> implements FilterPredicate {
         @Override
         public boolean keep(final DataRow row) {
             return getColumn().getValue(row).compareTo(getValue()) >= 0;
+        }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
         }
     }
 

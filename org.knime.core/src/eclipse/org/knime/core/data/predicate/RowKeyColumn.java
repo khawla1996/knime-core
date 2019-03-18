@@ -70,4 +70,9 @@ public final class RowKeyColumn implements Column<String> {
     public void validate(final DataTableSpec spec) {
     }
 
+    @Override
+    public <R> R accept(final Visitor<R> v) {
+        return v.visit(this);
+    }
+
 }

@@ -64,14 +64,14 @@ import org.knime.core.data.StringValue;
  * @since 3.8
  */
 @SuppressWarnings("javadoc")
-public abstract class IndexedColumn<T> implements Column<T> {
+public abstract class IndexedColumn<T extends Comparable<T>> implements Column<T> {
     private final int m_index;
 
     private IndexedColumn(final int index) {
         m_index = index;
     }
 
-    int getIndex() {
+    public int getIndex() {
         return m_index;
     }
 
@@ -105,6 +105,11 @@ public abstract class IndexedColumn<T> implements Column<T> {
         Class<IntValue> getDataValueClass() {
             return IntValue.class;
         }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
+        }
     }
 
     public static final class LongColumn extends IndexedColumn<Long> {
@@ -120,6 +125,11 @@ public abstract class IndexedColumn<T> implements Column<T> {
         @Override
         Class<LongValue> getDataValueClass() {
             return LongValue.class;
+        }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
         }
     }
 
@@ -137,6 +147,11 @@ public abstract class IndexedColumn<T> implements Column<T> {
         Class<DoubleValue> getDataValueClass() {
             return DoubleValue.class;
         }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
+        }
     }
 
     public static final class BooleanColumn extends IndexedColumn<Boolean> {
@@ -153,6 +168,11 @@ public abstract class IndexedColumn<T> implements Column<T> {
         Class<BooleanValue> getDataValueClass() {
             return BooleanValue.class;
         }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
+        }
     }
 
     public static final class StringColumn extends IndexedColumn<String> {
@@ -168,6 +188,11 @@ public abstract class IndexedColumn<T> implements Column<T> {
         @Override
         Class<StringValue> getDataValueClass() {
             return StringValue.class;
+        }
+
+        @Override
+        public <R> R accept(final Visitor<R> v) {
+            return v.visit(this);
         }
     }
 

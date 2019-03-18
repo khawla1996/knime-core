@@ -62,11 +62,13 @@ import org.knime.core.data.predicate.IndexedColumn.StringColumn;
  * @since 3.8
  */
 @SuppressWarnings("javadoc")
-public interface Column<T> {
+public interface Column<T extends Comparable<T>> {
 
     T getValue(DataRow row);
 
     void validate(DataTableSpec spec);
+
+    <R> R accept(Visitor<R> v);
 
     static RowKeyColumn rowKey() {
         return new RowKeyColumn();
@@ -90,6 +92,22 @@ public interface Column<T> {
 
     static StringColumn stringCol(final int index) {
         return new StringColumn(index);
+    }
+
+    public interface Visitor<R> {
+
+        R visit(final RowKeyColumn rowKey);
+
+        R visit(final IntColumn intCol);
+
+        R visit(final LongColumn longCol);
+
+        R visit(final DoubleColumn doubleCol);
+
+        R visit(final BooleanColumn boolCol);
+
+        R visit(final StringColumn stringCol);
+
     }
 
 }

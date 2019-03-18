@@ -131,7 +131,7 @@ public abstract class RowIterator implements Iterator<DataRow> {
      * @author Marc Bux, KNIME AG, Zurich, Switzerland
      * @since 3.8
      */
-    protected abstract static class Builder<T extends Builder<T>> {
+    public abstract static class Builder<T extends Builder<T>> {
 
         private final DataTableSpec m_spec;
 
