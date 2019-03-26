@@ -49,7 +49,6 @@
 package org.knime.core.data.predicate;
 
 import org.knime.core.data.DataRow;
-import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.predicate.IndexedColumn.BooleanColumn;
 import org.knime.core.data.predicate.IndexedColumn.DoubleColumn;
 import org.knime.core.data.predicate.IndexedColumn.IntColumn;
@@ -62,11 +61,9 @@ import org.knime.core.data.predicate.IndexedColumn.StringColumn;
  * @since 3.8
  */
 @SuppressWarnings("javadoc")
-public interface Column<T extends Comparable<T>> {
+public interface Column<T> {
 
     T getValue(DataRow row);
-
-    void validate(DataTableSpec spec);
 
     <R> R accept(Visitor<R> v);
 
@@ -92,6 +89,9 @@ public interface Column<T extends Comparable<T>> {
 
     static StringColumn stringCol(final int index) {
         return new StringColumn(index);
+    }
+
+    public interface OrderColumn<T extends Comparable<T>> extends Column<T> {
     }
 
     public interface Visitor<R> {

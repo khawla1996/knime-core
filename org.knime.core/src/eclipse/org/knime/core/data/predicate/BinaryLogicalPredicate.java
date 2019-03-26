@@ -49,7 +49,6 @@
 package org.knime.core.data.predicate;
 
 import org.knime.core.data.DataRow;
-import org.knime.core.data.DataTableSpec;
 
 /**
  *
@@ -65,13 +64,6 @@ public abstract class BinaryLogicalPredicate implements FilterPredicate {
     private BinaryLogicalPredicate(final FilterPredicate left, final FilterPredicate right) {
         m_left = left;
         m_right = right;
-    }
-
-    @Override
-    public FilterPredicate validate(final DataTableSpec spec) {
-        m_left.validate(spec);
-        m_right.validate(spec);
-        return this;
     }
 
     public FilterPredicate getLeft() {

@@ -49,7 +49,6 @@
 package org.knime.core.data.predicate;
 
 import org.knime.core.data.DataRow;
-import org.knime.core.data.DataTableSpec;
 
 /**
  *
@@ -72,12 +71,6 @@ public final class Not implements FilterPredicate {
     @Override
     public <R> R accept(final Visitor<R> v) {
         return v.visit(this);
-    }
-
-    @Override
-    public FilterPredicate validate(final DataTableSpec spec) {
-        m_predicate.validate(spec);
-        return this;
     }
 
     public FilterPredicate getPredicate() {

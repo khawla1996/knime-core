@@ -49,14 +49,14 @@
 package org.knime.core.data.predicate;
 
 import org.knime.core.data.DataRow;
-import org.knime.core.data.DataTableSpec;
+import org.knime.core.data.predicate.Column.OrderColumn;
 
 /**
  *
  * @author Marc
  * @since 3.8
  */
-public final class RowKeyColumn implements Column<String> {
+public final class RowKeyColumn implements OrderColumn<String> {
 
     RowKeyColumn() {
     }
@@ -64,10 +64,6 @@ public final class RowKeyColumn implements Column<String> {
     @Override
     public String getValue(final DataRow row) {
         return row.getKey().getString();
-    }
-
-    @Override
-    public void validate(final DataTableSpec spec) {
     }
 
     @Override

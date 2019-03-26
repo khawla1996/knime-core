@@ -51,7 +51,6 @@ package org.knime.core.data.predicate;
 import java.util.function.Predicate;
 
 import org.knime.core.data.DataRow;
-import org.knime.core.data.DataTableSpec;
 
 /**
  *
@@ -59,24 +58,18 @@ import org.knime.core.data.DataTableSpec;
  * @since 3.8
  */
 @SuppressWarnings("javadoc")
-public abstract class ColumnPredicate<T extends Comparable<T>> implements FilterPredicate {
+public abstract class ColumnPredicate<T> implements FilterPredicate {
     private final Column<T> m_column;
 
     ColumnPredicate(final Column<T> column) {
         m_column = column;
     }
 
-    @Override
-    public FilterPredicate validate(final DataTableSpec spec) {
-        m_column.validate(spec);
-        return this;
-    }
-
     public Column<T> getColumn() {
         return m_column;
     }
 
-    public static final class CustomPredicate<T extends Comparable<T>> extends ColumnPredicate<T> {
+    public static final class CustomPredicate<T> extends ColumnPredicate<T> {
         Predicate<T> m_predicate;
 
         CustomPredicate(final Column<T> column, final Predicate<T> predicate) {
@@ -99,7 +92,7 @@ public abstract class ColumnPredicate<T extends Comparable<T>> implements Filter
         }
     }
 
-    public static abstract class ValuePredicate<T extends Comparable<T>> extends ColumnPredicate<T> {
+    public static abstract class ValuePredicate<T> extends ColumnPredicate<T> {
         private final T m_value;
 
         private ValuePredicate(final Column<T> column, final T value) {
@@ -112,7 +105,7 @@ public abstract class ColumnPredicate<T extends Comparable<T>> implements Filter
         }
     }
 
-    public static final class EqualTo<T extends Comparable<T>> extends ValuePredicate<T> {
+    public static final class EqualTo<T> extends ValuePredicate<T> {
         EqualTo(final Column<T> column, final T value) {
             super(column, value);
         }
@@ -128,7 +121,7 @@ public abstract class ColumnPredicate<T extends Comparable<T>> implements Filter
         }
     }
 
-    public static final class NotEqualTo<T extends Comparable<T>> extends ValuePredicate<T> {
+    public static final class NotEqualTo<T> extends ValuePredicate<T> {
         NotEqualTo(final Column<T> column, final T value) {
             super(column, value);
         }
@@ -144,7 +137,13 @@ public abstract class ColumnPredicate<T extends Comparable<T>> implements Filter
         }
     }
 
-    public static final class LesserThan<T extends Comparable<T>> extends ValuePredicate<T> {
+    static abstract class OrderPredicate<T extends Comparable<T>> extends ValuePredicate<T> {
+        private OrderPredicate(final Column<T> column, final T value) {
+            super(column, value);
+        }
+    }
+
+    public static final class LesserThan<T extends Comparable<T>> extends OrderPredicate<T> {
         LesserThan(final Column<T> column, final T value) {
             super(column, value);
         }
@@ -160,7 +159,7 @@ public abstract class ColumnPredicate<T extends Comparable<T>> implements Filter
         }
     }
 
-    public static final class LesserThanOrEqualTo<T extends Comparable<T>> extends ValuePredicate<T> {
+    public static final class LesserThanOrEqualTo<T extends Comparable<T>> extends OrderPredicate<T> {
         LesserThanOrEqualTo(final Column<T> column, final T value) {
             super(column, value);
         }
@@ -176,7 +175,7 @@ public abstract class ColumnPredicate<T extends Comparable<T>> implements Filter
         }
     }
 
-    public static final class GreaterThan<T extends Comparable<T>> extends ValuePredicate<T> {
+    public static final class GreaterThan<T extends Comparable<T>> extends OrderPredicate<T> {
         GreaterThan(final Column<T> column, final T value) {
             super(column, value);
         }
@@ -192,7 +191,7 @@ public abstract class ColumnPredicate<T extends Comparable<T>> implements Filter
         }
     }
 
-    public static final class GreaterThanOrEqualTo<T extends Comparable<T>> extends ValuePredicate<T> {
+    public static final class GreaterThanOrEqualTo<T extends Comparable<T>> extends OrderPredicate<T> {
         GreaterThanOrEqualTo(final Column<T> column, final T value) {
             super(column, value);
         }

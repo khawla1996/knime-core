@@ -46,9 +46,11 @@ package org.knime.core.data;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.knime.core.data.predicate.FilterPredicate;
+import org.knime.core.data.predicate.FilterPredicateValidator;
 import org.knime.core.node.util.CheckUtils;
 
 /**
@@ -185,7 +187,8 @@ public abstract class RowIterator implements Iterator<DataRow> {
 
         public T filter(final FilterPredicate predicate) {
             CheckUtils.checkArgumentNotNull(predicate, "Predicate must not be null.");
-            m_predicate = predicate.validate(m_spec);
+            predicate.accept(new FilterPredicateValidator(m_spec));
+            m_predicate = predicate;
             return self();
         }
 
@@ -210,8 +213,8 @@ public abstract class RowIterator implements Iterator<DataRow> {
             return m_toIndex;
         }
 
-        protected FilterPredicate getPredicate() {
-            return m_predicate;
+        protected Optional<FilterPredicate> getPredicate() {
+            return Optional.ofNullable(m_predicate);
         }
 
         /**
@@ -279,14 +282,14 @@ public abstract class RowIterator implements Iterator<DataRow> {
 
         private final long m_toIndex;
 
-        private final FilterPredicate m_predicate;
+        private final Optional<FilterPredicate> m_predicate;
 
         private long m_index;
 
         private DataRow m_nextRow;
 
         public FilterDelegateRowIterator(final RowIterator iterator, final long fromIndex, final long toIndex,
-            final FilterPredicate predicate) {
+            final Optional<FilterPredicate> predicate) {
             m_delegate = iterator;
             m_fromIndex = fromIndex;
             m_toIndex = toIndex;
@@ -313,7 +316,7 @@ public abstract class RowIterator implements Iterator<DataRow> {
         private DataRow internalNext() {
             while (m_delegate.hasNext() && m_index <= m_toIndex) {
                 final DataRow row = m_delegate.next();
-                if (m_index++ >= m_fromIndex && (m_predicate == null || m_predicate.keep(row))) {
+                if (m_index++ >= m_fromIndex && (m_predicate.isPresent() || m_predicate.get().keep(row))) {
                     return row;
                 }
             }

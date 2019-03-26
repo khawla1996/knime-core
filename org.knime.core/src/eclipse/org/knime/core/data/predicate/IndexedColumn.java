@@ -50,9 +50,6 @@ package org.knime.core.data.predicate;
 
 import org.knime.core.data.BooleanValue;
 import org.knime.core.data.DataRow;
-import org.knime.core.data.DataTableSpec;
-import org.knime.core.data.DataType;
-import org.knime.core.data.DataValue;
 import org.knime.core.data.DoubleValue;
 import org.knime.core.data.IntValue;
 import org.knime.core.data.LongValue;
@@ -64,7 +61,7 @@ import org.knime.core.data.StringValue;
  * @since 3.8
  */
 @SuppressWarnings("javadoc")
-public abstract class IndexedColumn<T extends Comparable<T>> implements Column<T> {
+public abstract class IndexedColumn<T> implements Column<T> {
     private final int m_index;
 
     private IndexedColumn(final int index) {
@@ -75,23 +72,7 @@ public abstract class IndexedColumn<T extends Comparable<T>> implements Column<T
         return m_index;
     }
 
-    @Override
-    public void validate(final DataTableSpec spec) {
-        if (m_index < 0 || m_index >= spec.getNumColumns()) {
-            throw new IndexOutOfBoundsException("Column index out of range: " + m_index);
-        }
-
-        DataType type = spec.getColumnSpec(m_index).getType();
-        Class<? extends DataValue> dataValueClass = getDataValueClass();
-        if (!type.isCompatible(getDataValueClass())) {
-            throw new IllegalArgumentException("Column at index " + m_index + " is of type " + type.getName()
-                + ", which is incompatible to " + dataValueClass.getName() + ".");
-        }
-    }
-
-    abstract Class<? extends DataValue> getDataValueClass();
-
-    public static final class IntColumn extends IndexedColumn<Integer> {
+    public static final class IntColumn extends IndexedColumn<Integer> implements OrderColumn<Integer> {
         IntColumn(final int index) {
             super(index);
         }
@@ -102,17 +83,12 @@ public abstract class IndexedColumn<T extends Comparable<T>> implements Column<T
         }
 
         @Override
-        Class<IntValue> getDataValueClass() {
-            return IntValue.class;
-        }
-
-        @Override
         public <R> R accept(final Visitor<R> v) {
             return v.visit(this);
         }
     }
 
-    public static final class LongColumn extends IndexedColumn<Long> {
+    public static final class LongColumn extends IndexedColumn<Long> implements OrderColumn<Long> {
         LongColumn(final int index) {
             super(index);
         }
@@ -123,17 +99,12 @@ public abstract class IndexedColumn<T extends Comparable<T>> implements Column<T
         }
 
         @Override
-        Class<LongValue> getDataValueClass() {
-            return LongValue.class;
-        }
-
-        @Override
         public <R> R accept(final Visitor<R> v) {
             return v.visit(this);
         }
     }
 
-    public static final class DoubleColumn extends IndexedColumn<Double> {
+    public static final class DoubleColumn extends IndexedColumn<Double> implements OrderColumn<Double> {
         DoubleColumn(final int index) {
             super(index);
         }
@@ -141,11 +112,6 @@ public abstract class IndexedColumn<T extends Comparable<T>> implements Column<T
         @Override
         public Double getValue(final DataRow row) {
             return ((DoubleValue)row.getCell(getIndex())).getDoubleValue();
-        }
-
-        @Override
-        Class<DoubleValue> getDataValueClass() {
-            return DoubleValue.class;
         }
 
         @Override
@@ -165,17 +131,12 @@ public abstract class IndexedColumn<T extends Comparable<T>> implements Column<T
         }
 
         @Override
-        Class<BooleanValue> getDataValueClass() {
-            return BooleanValue.class;
-        }
-
-        @Override
         public <R> R accept(final Visitor<R> v) {
             return v.visit(this);
         }
     }
 
-    public static final class StringColumn extends IndexedColumn<String> {
+    public static final class StringColumn extends IndexedColumn<String>  implements OrderColumn<String> {
         StringColumn(final int index) {
             super(index);
         }
@@ -183,11 +144,6 @@ public abstract class IndexedColumn<T extends Comparable<T>> implements Column<T
         @Override
         public String getValue(final DataRow row) {
             return ((StringValue)row.getCell(getIndex())).getStringValue();
-        }
-
-        @Override
-        Class<StringValue> getDataValueClass() {
-            return StringValue.class;
         }
 
         @Override

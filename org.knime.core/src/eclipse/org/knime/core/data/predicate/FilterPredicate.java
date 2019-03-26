@@ -53,9 +53,9 @@ import java.util.function.Predicate;
 //import java.util.function.Predicate;
 
 import org.knime.core.data.DataRow;
-import org.knime.core.data.DataTableSpec;
 import org.knime.core.data.predicate.BinaryLogicalPredicate.And;
 import org.knime.core.data.predicate.BinaryLogicalPredicate.Or;
+import org.knime.core.data.predicate.Column.OrderColumn;
 import org.knime.core.data.predicate.ColumnPredicate.CustomPredicate;
 import org.knime.core.data.predicate.ColumnPredicate.EqualTo;
 import org.knime.core.data.predicate.ColumnPredicate.GreaterThan;
@@ -74,8 +74,6 @@ public interface FilterPredicate {
 
     boolean keep(DataRow row);
 
-    FilterPredicate validate(DataTableSpec spec);
-
     <R> R accept(Visitor<R> v);
 
     default FilterPredicate negate() {
@@ -90,42 +88,41 @@ public interface FilterPredicate {
         return new And(this, other);
     }
 
-    static <T extends Comparable<T>, C extends Column<T>> FilterPredicate udf(final C column,
-        final Predicate<T> predicate) {
+    static <T, C extends IndexedColumn<T>> FilterPredicate udf(final C column, final Predicate<T> predicate) {
         return new CustomPredicate<T>(column, predicate);
     }
 
-    static <T extends Comparable<T>, C extends Column<T>> FilterPredicate eq(final C column, final T value) {
+    static <T, C extends Column<T>> FilterPredicate eq(final C column, final T value) {
         return new EqualTo<T>(column, value);
     }
 
-    static <T extends Comparable<T>, C extends Column<T>> FilterPredicate neq(final C column, final T value) {
+    static <T, C extends Column<T>> FilterPredicate neq(final C column, final T value) {
         return new NotEqualTo<T>(column, value);
     }
 
-    static <T extends Comparable<T>, C extends Column<T>> FilterPredicate lt(final C column, final T value) {
+    static <T extends Comparable<T>, C extends OrderColumn<T>> FilterPredicate lt(final C column, final T value) {
         return new LesserThan<T>(column, value);
     }
 
-    static <T extends Comparable<T>, C extends Column<T>> FilterPredicate leq(final C column, final T value) {
+    static <T extends Comparable<T>, C extends OrderColumn<T>> FilterPredicate leq(final C column, final T value) {
         return new LesserThanOrEqualTo<T>(column, value);
     }
 
-    static <T extends Comparable<T>, C extends Column<T>> FilterPredicate gt(final C column, final T value) {
+    static <T extends Comparable<T>, C extends OrderColumn<T>> FilterPredicate gt(final C column, final T value) {
         return new GreaterThan<T>(column, value);
     }
 
-    static <T extends Comparable<T>, C extends Column<T>> FilterPredicate geq(final C column, final T value) {
+    static <T extends Comparable<T>, C extends OrderColumn<T>> FilterPredicate geq(final C column, final T value) {
         return new GreaterThanOrEqualTo<T>(column, value);
     }
 
     public interface Visitor<R> {
 
-        <T extends Comparable<T>> R visit(final CustomPredicate<T> udf);
+        <T> R visit(final CustomPredicate<T> udf);
 
-        <T extends Comparable<T>> R visit(final EqualTo<T> eq);
+        <T> R visit(final EqualTo<T> eq);
 
-        <T extends Comparable<T>> R visit(final NotEqualTo<T> neq);
+        <T> R visit(final NotEqualTo<T> neq);
 
         <T extends Comparable<T>> R visit(final LesserThan<T> lt);
 

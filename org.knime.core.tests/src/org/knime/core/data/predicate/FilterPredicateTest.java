@@ -164,16 +164,17 @@ public class FilterPredicateTest {
 
     @Test(expected = IndexOutOfBoundsException.class)
     public void testIndexOutOfBoundsLow() {
-        eq(intCol(-1), 2).validate(INT_SPEC);
+        eq(intCol(-1), 2).accept(new FilterPredicateValidator(INT_SPEC));
     }
 
     @Test(expected = IndexOutOfBoundsException.class)
     public void testIndexOutOfBoundsHigh() {
-        eq(intCol(1), 2).validate(INT_SPEC);
+        eq(intCol(1), 2).accept(new FilterPredicateValidator(INT_SPEC));
     }
 
     public void testCompatibleTypes() {
-        final FilterPredicate eq2l = eq(longCol(0), 2l).validate(INT_SPEC);
+        final FilterPredicate eq2l = eq(longCol(0), 2l);
+        eq2l.accept(new FilterPredicateValidator(INT_SPEC));
         assertFalse(eq2l.keep(ONE));
         assertTrue(eq2l.keep(TWO));
         assertFalse(eq2l.keep(THREE));
@@ -181,7 +182,7 @@ public class FilterPredicateTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testIncompatibleTypes() {
-        eq(intCol(0), 2).validate(LONG_SPEC);
+        eq(intCol(0), 2).accept(new FilterPredicateValidator(LONG_SPEC));
     }
 
 }
