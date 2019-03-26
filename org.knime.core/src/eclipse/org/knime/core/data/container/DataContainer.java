@@ -53,8 +53,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -353,7 +355,7 @@ public class DataContainer implements RowAppender {
             m_writeThrowable = null;
             m_asyncAddFuture = null;
         } else {
-            m_rowBuffer = new ArrayBlockingQueue<>(settings.getAsyncCacheSize());
+            m_rowBuffer = new ArrayBlockingQueue<>(settings.getAsyncCacheSize()* 100);
             m_writeThrowable = new AtomicReference<Throwable>();
             m_asyncAddFuture = ASYNC_EXECUTORS.submit(new ASyncWriteCallable(this, NodeContext.getContext()));
         }
@@ -520,7 +522,8 @@ public class DataContainer implements RowAppender {
         }
         if (!m_isSynchronousWrite) {
             try {
-                offerToAsynchronousQueue(CONTAINER_CLOSE);
+                dRow.add(CONTAINER_CLOSE);
+                offerToAsynchronousQueue(dRow);
                 m_asyncAddFuture.get();
                 checkAsyncWriteThrowable();
             } catch (InterruptedException e) {
@@ -574,6 +577,54 @@ public class DataContainer implements RowAppender {
                     }
                 }
             } catch (InterruptedException e) {
+                m_asyncAddFuture.cancel(true);
+                throw new DataContainerException("Adding rows to buffer was interrupted", e);
+            }
+        }
+    }
+
+    /**
+     * Adds the argument object (which will be a DataRow unless when called from close()) to the data row queue.
+     *
+     * @param object the object to add.
+     */
+    private void offerToAsynchronousQueue(final List<Object> object) {
+        while (true) {
+            try {
+                // check if the write thread has reported an exception
+                checkAsyncWriteThrowable();
+                // put the data row / container close object into the queue and wait 30 seconds for it to be fetched
+//                System.out.println(m_rowBuffer.remainingCapacity() + " \t " + object.size());
+                if (m_rowBuffer.remainingCapacity() > object.size()) {
+                    if (m_rowBuffer.addAll(object)) {
+                        object.clear();
+                        return;
+                    } else {
+                        if (m_asyncAddFuture.isDone()) {
+                            checkAsyncWriteThrowable();
+                            // if we reach this code, the write process has not thrown an exception
+                            // (the above line will likely throw an exception)
+                            throw new DataContainerException("Writing to table has unexpectedly stopped");
+                        }
+                    }
+                } else {
+                    for (final Object obj : object) {
+                        if (m_rowBuffer.offer(obj, 30, TimeUnit.SECONDS)) {
+                            continue;
+                            // if it wasn't fetched, continue / try again unless the container has been closed already
+                        } else {
+                            if (m_asyncAddFuture.isDone()) {
+                                checkAsyncWriteThrowable();
+                                // if we reach this code, the write process has not thrown an exception
+                                // (the above line will likely throw an exception)
+                                throw new DataContainerException("Writing to table has unexpectedly stopped");
+                            }
+                        }
+                    }
+                }
+                object.clear();
+                return;
+            } catch (Exception e) {
                 m_asyncAddFuture.cancel(true);
                 throw new DataContainerException("Adding rows to buffer was interrupted", e);
             }
@@ -652,6 +703,9 @@ public class DataContainer implements RowAppender {
         throw new IllegalStateException("Cannot get spec: container not open.");
     }
 
+
+    final List<Object> dRow = new ArrayList<>(100);
+
     /** {@inheritDoc} */
     @Override
     public void addRowToTable(final DataRow row) {
@@ -677,10 +731,14 @@ public class DataContainer implements RowAppender {
             }
             addRowToTableWrite(row);
         } else {
+            dRow.add(row);
             if (MemoryAlertSystem.getInstance().isMemoryLow()) {
-                offerToAsynchronousQueue(FLUSH_CACHE);
+                dRow.add(FLUSH_CACHE);
+                offerToAsynchronousQueue(dRow);
             }
-            offerToAsynchronousQueue(row);
+            if (dRow.size() == 100) {
+                offerToAsynchronousQueue(dRow);
+            }
         }
         m_size += 1;
     } // addRowToTable(DataRow)
@@ -1123,35 +1181,43 @@ public class DataContainer implements RowAppender {
             }
             final BlockingQueue<Object> queue = d.m_rowBuffer;
             final AtomicReference<Throwable> throwable = d.m_writeThrowable;
+            final List<Object> obs = new ArrayList<>(queue.size());
             try {
                 while (true) {
                     // give the garbage collector some time to garbage-collect the container if it isn't in use any more
                     d = null;
-                    final Object obj = queue.poll(30, TimeUnit.SECONDS);
-                    d = m_containerRef.get();
-                    if (d == null) {
-                        break;
-                    }
-                    if (obj == null) {
-                        continue;
-                    }
-                    if (obj == CONTAINER_CLOSE) {
-                        // table has been closed (some non-DataRow was queued)
-                        return null;
-                    } else if (obj == FLUSH_CACHE) {
-                        // memory consumption critical; buffer should be flushed
-                        d.m_buffer.flushBuffer();
-                    } else {
-                        // fetch and handle / write data row
-                        final DataRow row = (DataRow)obj;
-                        d.addRowToTableWrite(row);
+//                    if (queue.remainingCapacity() > -1) {
+                        if(!queue.isEmpty()) {
+                            queue.drainTo(obs);
+                        for (final Object obj : obs) {
+                            d = m_containerRef.get();
+                            if (d == null) {
+                                LOGGER.debug("Ending DataContainer write thread since container was garbage collected");
+                                return null;
+                            }
+                            if (obj == null) {
+                                continue;
+                            }
+                            if (obj == CONTAINER_CLOSE) {
+                                obs.clear();
+                                // table has been closed (some non-DataRow was queued)
+                                return null;
+                            } else if (obj == FLUSH_CACHE) {
+                                // memory consumption critical; buffer should be flushed
+                                d.m_buffer.flushBuffer();
+                            } else {
+                                // fetch and handle / write data row
+                                final DataRow row = (DataRow)obj;
+                                d.addRowToTableWrite(row);
+                            }
+                        }
+                        obs.clear();
                     }
                 }
                 // m_containerRef.get() returned null -> close() was never called on the container
                 // (which was garbage collected already); we can end this thread
-                LOGGER.debug("Ending DataContainer write thread since container was garbage collected");
-                return null;
-            } catch (Throwable t) {
+
+            } catch (Exception t) {
                 throwable.compareAndSet(null, t);
                 return null;
             }

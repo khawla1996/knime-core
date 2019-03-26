@@ -218,7 +218,7 @@ public class DuplicateChecker implements IDuplicateChecker {
      * Creates a new duplicate checker with default parameters.
      */
     public DuplicateChecker() {
-        this(MAX_CHUNK_SIZE, MAX_STREAMS);
+        this(Integer.MAX_VALUE, MAX_STREAMS);
     }
 
     /**
@@ -233,7 +233,7 @@ public class DuplicateChecker implements IDuplicateChecker {
         if (maxStreams < 2) {
             throw new IllegalArgumentException("The number of streams must be at least 2");
         }
-        m_maxChunkSize = maxChunkSize;
+        m_maxChunkSize = Integer.MAX_VALUE;
         m_maxStreams = maxStreams;
     }
 
@@ -241,7 +241,7 @@ public class DuplicateChecker implements IDuplicateChecker {
     @Override
     public void addKey(final String s) throws DuplicateKeyException,
             IOException {
-        if (DISABLE_DUPLICATE_CHECK) {
+        if (DISABLE_DUPLICATE_CHECK == false) {
             return;
         }
         // bug fix #1737: keys may be just wrappers of very large strings ...
