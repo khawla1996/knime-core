@@ -284,8 +284,8 @@ public final class DoubleCell extends DataCell
             if (trimmed.isEmpty()) {
                 return DataType.getMissingCell();
             }
-
-            return new DoubleCell(Double.parseDouble(trimmed));
+//            return new DoubleCell(Double.parseDouble(trimmed));
+            return new DoubleCell(NumberParser.getDouble(trimmed));
         }
 
         /**
