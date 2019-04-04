@@ -172,16 +172,18 @@ public class FilterPredicateTest {
         eq(intCol(1), 2).accept(new FilterPredicateValidator(INT_SPEC));
     }
 
-    public void testCompatibleTypes() {
-        final FilterPredicate eq2l = eq(longCol(0), 2l);
-        eq2l.accept(new FilterPredicateValidator(INT_SPEC));
-        assertFalse(eq2l.keep(ONE));
-        assertTrue(eq2l.keep(TWO));
-        assertFalse(eq2l.keep(THREE));
+    @Test
+    public void testIntSpecCompatibleToIntColumn() {
+        eq(intCol(0), 2).accept(new FilterPredicateValidator(INT_SPEC));
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testIncompatibleTypes() {
+    public void testIntSpecIncompatibleToLongColumn() {
+        eq(longCol(0), 2l).accept(new FilterPredicateValidator(INT_SPEC));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testLongSpecIncompatibleToIntColumn() {
         eq(intCol(0), 2).accept(new FilterPredicateValidator(LONG_SPEC));
     }
 

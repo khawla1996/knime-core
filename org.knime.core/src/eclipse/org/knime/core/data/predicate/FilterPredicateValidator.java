@@ -196,8 +196,10 @@ public class FilterPredicateValidator implements Visitor<Void> {
         }
 
         private void checkTypesEqual(final int index, final DataType expected) {
-            throw new IllegalArgumentException("Column at index " + index + " is of type "
-                + m_spec.getColumnSpec(index).getName() + ", which is incompatible to " + expected.getName() + ".");
+            if (!m_spec.getColumnSpec(index).getType().equals(expected)) {
+                throw new IllegalArgumentException("Column at index " + index + " is of type "
+                    + m_spec.getColumnSpec(index).getName() + ", which is incompatible to " + expected.getName() + ".");
+            }
         }
 
         /**
